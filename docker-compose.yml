@@ -1,18 +1,39 @@
-version: '3.8'
+version: "3.7"
 
 services:
+
   flask_app:
-    build: .
-    container_name: flask_app
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.flask.rule=Host(`flask.transformetech.com`)"
-      - "traefik.http.routers.flask.entrypoints=web"
-      - "traefik.http.services.flask.loadbalancer.server.port=5000"
+    image: flask_app:latest # Imagem do seu app Flask
+    command: python app.py # Comando para rodar o Flask
+
     networks:
-      - traefik
-    restart: always
+      - TransformeTechNet # Nome da rede interna
+
+    environment:
+      ## Configurações de ambiente da aplicação Flask
+      - FLASK_ENV=production
+      - FLASK_APP=app.py
+      - TZ=America/Sao_Paulo
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256M
+      labels:
+        ## Configurações para o Traefik
+        - traefik.enable=true
+        - traefik.http.routers.flask_app.rule=Host(`flask.transformetech.com`)
+        - traefik.http.routers.flask_app.entrypoints=websecure
+        - traefik.http.routers.flask_app.tls.certresolver=letsencryptresolver
+        - traefik.http.services.flask_app.loadbalancer.server.port=5000
 
 networks:
-  traefik:
+  TransformeTechNet:
+    name: TransformeTechNet
     external: true
